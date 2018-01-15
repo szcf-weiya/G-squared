@@ -86,39 +86,41 @@ Rcpp::List g2(Rcpp::DataFrame ds)
     gsl_vector_set(y, i, gsl_vector_get(tmp, order[i]));
   }
   // normalize
-  gsl_vector_add_constant(y, gsl_stats_mean(y->data, 1, n));
-  //gsl_vector_scale(y, 1./gsl_stats_sd(y->data, 1, n));
-  double sum_yy;
-  gsl_blas_ddot(y, y, &sum_yy);
-  gsl_vector_scale(y, sqrt(n)/sqrt(sum_yy));
+  gsl_vector_add_constant(y, -1.0*gsl_stats_mean(y->data, 1, n)); // pay attention to the sign
+  gsl_vector_scale(y, 1./gsl_stats_sd(y->data, 1, n));
+  //double sum_yy;
+  //gsl_blas_ddot(y, y, &sum_yy);
+  //sum_yy = gsl_blas_dnrm2(y);
+  //gsl_vector_scale(y, sqrt(n)/sum_yy);
   // initialize three sequences
-  RcppGSL::vector<double> Mi(n+1);
-  RcppGSL::vector<double> Bi(n+1);
-  RcppGSL::vector<double> Ti(n+1);
-  Mi[1] = 0;
-  Bi[1] = 1;
-  Ti[1] = 1;
+  //RcppGSL::vector<double> Mi(n);
+  gsl_vector *Mi = gsl_vector_calloc(n);
+  RcppGSL::vector<double> Bi(n);
+  RcppGSL::vector<double> Ti(n);
+  Mi[0] = 0;
+  Bi[0] = 1;
+  Ti[0] = 1;
   double bi, ti;
-  for(size_t i = m; i <= n; i++){
+  for(size_t i = m - 1; i < n; i++){
     bi = 0;
     ti = 0;
     if (i < 2*m)
     {
-      Mi[i] = Mi[1];
-      Bi[i] = Bi[1];
-      Ti[i] = Ti[1];
+      Mi[i] = Mi[0];
+      Bi[i] = Bi[0];
+      Ti[i] = Ti[0];
       continue;
     }
-    gsl_vector *mi = gsl_vector_calloc(i-2*m+3);
+    gsl_vector *mi = gsl_vector_calloc(i-2*m+2);
     gsl_vector_add_constant(mi, -10000000);
     // construct k
-    RcppGSL::vector<int> k(i-2*m+3);
-    k[1] = 1;
-    for (size_t ii = 2; ii <= i-2*m+2; ii++){
-      k[ii] = m - 1 + ii;
+    RcppGSL::vector<int> k(i-2*m+2);
+    k[0] = 0;
+    for (size_t ii = 1; ii < i-2*m+2; ii++){
+      k[ii] = m -1 + ii;
     }
 
-    for (size_t kk = 1; kk <= i-2*m+2; kk++){
+    for (size_t kk = 0; kk < i-2*m+2; kk++){
       // regression y on x for k:i
       RcppGSL::vector<double> xx(i-k[kk]+1);
       RcppGSL::vector<double> yy(i-k[kk]+1);
@@ -131,6 +133,7 @@ Rcpp::List g2(Rcpp::DataFrame ds)
       double sum_xy, sum_xx;
       gsl_blas_ddot(xx, yy, &sum_xy);
       gsl_blas_ddot(xx, xx, &sum_xx);
+      //sum_xx = pow(gsl_blas_dnrm2(xx), 2);
       gsl_vector_memcpy(yyhat, xx);
       gsl_vector_scale(yyhat, sum_xy/sum_xx);
       gsl_vector_add_constant(yyhat, gsl_stats_mean(yy->data, 1, i-k[kk]+1));
@@ -139,6 +142,8 @@ Rcpp::List g2(Rcpp::DataFrame ds)
       sigma2hat = gsl_stats_variance(yyhat->data, 1, i-k[kk]+1);
       double lki = -(i-k[kk])*log(sigma2hat)/2;
       gsl_vector_set(mi, kk, lambda + Mi[k[kk]] + lki);
+      //cout << "mi = " << gsl_vector_get(mi, kk) << endl;
+      cout << lambda << " " << Mi[k[kk]] << endl;
       double Lki = exp(lki);
       bi = bi + Bi[k[kk]];
       ti = ti + Ti[k[kk]]*Lki;
