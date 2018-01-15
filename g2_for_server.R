@@ -1,24 +1,5 @@
----
-title: "R Notebook"
-output:
-  pdf_document: default
-  html_notebook: default
----
-
-$$
-X\sim U(0, 1),\qquad Y=f(X)+\epsilon\sigma,\sigma\sim N(0,1)
-$$
-where $var\{f(X)\}=1$
-
-thus
-$$
-G_{Y\mid X}^2=(1+\sigma^2)^{-1}
-$$
-
-generate dataset
-```{r}
 library(energy) # for distance correlation
-n = 225 # number of data points per simulation
+n = 100 # number of data points per simulation
 n1 = n2 = 100 # replications
 num.noise = 20 # number of noise level
 num.type = 8 # number of function type
@@ -26,7 +7,7 @@ noise = sqrt(1/seq(0.01, 0.2, length.out = num.noise)-1)
 value.cor = value.dcor = value.g2m = value.g2t = numeric(n1)
 value.cor2 = value.dcor2 = value.g2m2 = value.g2t2 = numeric(n2)
 power.cor = power.dcor = power.g2m = power.g2t = array(NA, c(num.type, num.noise))
-genXY <- function(n = 225, epsi = 1, type = 1, resimulate = FALSE)
+genXY <- function(n = 100, epsi = 1, type = 1, resimulate = FALSE)
 {
   x = runif(n, 0, 1)
   if (type == 1){
@@ -69,12 +50,7 @@ genXY <- function(n = 225, epsi = 1, type = 1, resimulate = FALSE)
   res = list(X = x, Y = y)
   return(res)
 }
-```
 
-
-estimate $G_m^2$ and $G_t^2$
-
-```{r}
 ## fix lambda0 = 3
 g2 <- function(X, Y){
   ## step 1: data preparation
@@ -131,9 +107,7 @@ g2 <- function(X, Y){
              g2t = 1-(Ti[n]/Bi[n])^{-2/n})
   return(res)
 }
-```
 
-```{r}
 library(foreach)
 library(doParallel)
 cl<-makeCluster(4)
@@ -147,7 +121,7 @@ output = foreach(i=1:num.noise, .combine = list, .packages = "energy", .export =
       res = genXY(epsi = noise[i], type = j, resimulate = TRUE)
       X = res$X
       Y = res$Y
-
+      
       value.cor[k] = (cor(X, Y))^2
       value.dcor[k] = dcor(X, Y)
       value.g2 = g2(X, Y)
@@ -193,8 +167,8 @@ output = foreach(i=1:num.noise, .combine = list, .packages = "energy", .export =
     power.dcor[j] = sum(value.dcor > cut.dcor)/n2
     power.g2m[j] = sum(value.g2m2 > cut.g2m)/n2
     power.g2t[j] = sum(value.g2t2 > cut.g2t)/n2
+    cat("i = ", i, "j = ", j, "\n")
   }
   data.frame(power.cor, power.dcor, power.g2m, power.g2t)
 }
 stopCluster(cl)
-```
