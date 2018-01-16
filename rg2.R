@@ -1,9 +1,18 @@
 library(Rcpp)
-N = 225
 Rcpp::sourceCpp("g20.cpp")
 
+
 ## statpower
-StatPower(100, 1, 1, 100, 100)
+N = 100
+num.noise = 6 # 30
+num.type = 2 # 8
+n1 = 200
+n2 = 200
+system.time(
+  {
+    res = StatPower(N, num.noise, num.type, n1, n2)
+  }
+)
 
 ## test 
 x = 1:N
