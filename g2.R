@@ -4,11 +4,12 @@ g2 <- function(X, Y){
   idx = order(X)
   x = X[idx]
   y = Y[idx]
+  n = length(X)
   # normalize
   y = y - mean(y)
-  y = sqrt(n)*y/sqrt(sum(y^2))
+  #y = sqrt(n)*y/sqrt(sum(y^2))
+  y = y/sd(y)
   ## step 2: main algorithm
-  n = length(X)
   m = ceiling(sqrt(n))
   lambda = -3*log(n)/2
   alpha = exp(lambda)

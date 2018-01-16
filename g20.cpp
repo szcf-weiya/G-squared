@@ -62,8 +62,16 @@ Rcpp::List genXY(const int n, const double epsi, const int type, const int resim
   return(res);
 }
 
+double myexp(const double x)
+{
+  double tmp = exp(x);
+  if (tmp > 1e300) /// max double: 1.79769e+308
+    tmp = 1e300;
+  return tmp;
+}
+
 // [[Rcpp::export]]
-Rcpp::List g2(Rcpp::DataFrame ds)
+Rcpp::List g2cpp(Rcpp::DataFrame ds)
 {
   Rcpp::DataFrame D(ds);
   RcppGSL::vector<double> y = D["y"];
@@ -71,7 +79,6 @@ Rcpp::List g2(Rcpp::DataFrame ds)
   size_t n = x->size;
   size_t m = ceil(sqrt(n));
   double lambda = -3*log(n)/2;
-  cout << lambda << endl;
   size_t *order = (size_t*)malloc(sizeof(size_t)*n);
   gsl_sort_index(order, x->data, 1, n);
   gsl_vector *tmp = gsl_vector_alloc(n);
@@ -79,12 +86,12 @@ Rcpp::List g2(Rcpp::DataFrame ds)
   // sort (xi, yi) by the ascending order of x
   for (size_t i = 0; i < n; i++){
     gsl_vector_set(x, i, gsl_vector_get(tmp, order[i]));
-    cout << gsl_vector_get(x, i) << " " << endl;
   }
   gsl_vector_memcpy(tmp, y);
   for (size_t i = 0; i < n; i++){
     gsl_vector_set(y, i, gsl_vector_get(tmp, order[i]));
   }
+  free(order);
   // normalize
   gsl_vector_add_constant(y, -1.0*gsl_stats_mean(y->data, 1, n)); // pay attention to the sign
   gsl_vector_scale(y, 1./gsl_stats_sd(y->data, 1, n));
@@ -93,8 +100,7 @@ Rcpp::List g2(Rcpp::DataFrame ds)
   //sum_yy = gsl_blas_dnrm2(y);
   //gsl_vector_scale(y, sqrt(n)/sum_yy);
   // initialize three sequences
-  //RcppGSL::vector<double> Mi(n);
-  gsl_vector *Mi = gsl_vector_calloc(n);
+  RcppGSL::vector<double> Mi(n);
   RcppGSL::vector<double> Bi(n);
   RcppGSL::vector<double> Ti(n);
   Mi[0] = 0;
@@ -112,7 +118,6 @@ Rcpp::List g2(Rcpp::DataFrame ds)
       continue;
     }
     gsl_vector *mi = gsl_vector_calloc(i-2*m+2);
-    gsl_vector_add_constant(mi, -10000000);
     // construct k
     RcppGSL::vector<int> k(i-2*m+2);
     k[0] = 0;
@@ -125,32 +130,37 @@ Rcpp::List g2(Rcpp::DataFrame ds)
       RcppGSL::vector<double> xx(i-k[kk]+1);
       RcppGSL::vector<double> yy(i-k[kk]+1);
       RcppGSL::vector<double> yyhat(i-k[kk]+1);
-      for (size_t ki = k[kk]-1; ki < i; ki++){
-        xx[ki-k[kk]+1] = gsl_vector_get(x, ki);
-        yy[ki-k[kk]+1] = gsl_vector_get(y, ki);
+      for (size_t ki = k[kk]; ki <= i; ki++){ // pay attention to the idx
+        xx[ki-k[kk]] = gsl_vector_get(x, ki);
+        yy[ki-k[kk]] = gsl_vector_get(y, ki);
       }
       gsl_vector_add_constant(xx, -1.*gsl_stats_mean(xx->data, 1, i-k[kk]+1));
       double sum_xy, sum_xx;
       gsl_blas_ddot(xx, yy, &sum_xy);
       gsl_blas_ddot(xx, xx, &sum_xx);
-      //sum_xx = pow(gsl_blas_dnrm2(xx), 2);
       gsl_vector_memcpy(yyhat, xx);
       gsl_vector_scale(yyhat, sum_xy/sum_xx);
       gsl_vector_add_constant(yyhat, gsl_stats_mean(yy->data, 1, i-k[kk]+1));
+      //cout << gsl_stats_mean(yy->data, 1, i-k[kk]+1) << endl;
+
+      //for (size_t j = 0; j < i-k[kk]+1; j++){
+      //  cout << xx[j] << " " << yy[j] << " " << yyhat[j] << endl;
+      //}
       gsl_vector_sub(yyhat, yy);
       double sigma2hat;
       sigma2hat = gsl_stats_variance(yyhat->data, 1, i-k[kk]+1);
-      double lki = -(i-k[kk])*log(sigma2hat)/2;
+      //cout << "sigma2hat" << sigma2hat << endl;
+      double lki = -1.0* (i-k[kk])*log(sigma2hat)/2;
       gsl_vector_set(mi, kk, lambda + Mi[k[kk]] + lki);
-      //cout << "mi = " << gsl_vector_get(mi, kk) << endl;
-      cout << lambda << " " << Mi[k[kk]] << endl;
-      double Lki = exp(lki);
+      //double Lki = exp(lki);
+      double Lki = myexp(lki);
       bi = bi + Bi[k[kk]];
       ti = ti + Ti[k[kk]]*Lki;
       xx.free();
       yy.free();
       yyhat.free();
     }
+
     Mi[i] = gsl_vector_max(mi);
     Bi[i] = bi;
     Ti[i] = ti;
