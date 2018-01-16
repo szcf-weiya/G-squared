@@ -25,6 +25,10 @@ We would get the following results
 
 ![](compare_res.png)
 
+Our original goal is to speed up the program by Rcpp. The following results demonstrate the Rcpp program works!
+
+
+![](compare_time.png)
 
 ## Reference
 1. Wang, X., Jiang, B., & Liu, J. S. (2017). Generalized R-squared for detecting dependence. Biometrika,​ ​ 104(1),​ ​ 129-139.

@@ -13,3 +13,17 @@ for (i in 1:20)
   gap[2, i] = res1$g2t - res2$g2t
 }
 gap
+
+## compare time 
+system.time(
+  {
+    for (i in 1:10)
+      g2(x,y)
+  }
+)
+system.time(
+  {
+    for (i in 1:10)
+      g2cpp(df)
+  }
+)
