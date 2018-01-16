@@ -1,6 +1,18 @@
 library(Rcpp)
 N = 225
 Rcpp::sourceCpp("g20.cpp")
+
+## statpower
+StatPower(100, 1, 1, 100, 100)
+
+## test 
+x = 1:N
+y = 1:N + rnorm(N, sd = 50)
+df = data.frame(x=x, y=y)
+test(df)
+g2(x,y)
+
+## compare results
 x = 1:N
 gap = array(NA, c(2, 20))
 for (i in 1:20)
@@ -17,13 +29,19 @@ gap
 ## compare time 
 system.time(
   {
-    for (i in 1:10)
+    for (i in 1:20)
       g2(x,y)
   }
 )
 system.time(
   {
-    for (i in 1:10)
+    for (i in 1:20)
       g2cpp(df)
+  }
+)
+system.time(
+  {
+    for (i in 1:20)
+      test(df)
   }
 )

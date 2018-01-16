@@ -10,7 +10,7 @@ void test1(const double *x, const int n)
 
 void test2(const double *x, const int n)
 {
-  size_t *order = new size_t(n);
+  size_t *order = new size_t[n];
   gsl_sort_index(order, x, 1, n);
   delete [] order;
 }

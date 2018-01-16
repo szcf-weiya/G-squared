@@ -118,7 +118,7 @@ double myexp(const double x)
   return tmp;
 }
 
-/*
+
 // [[Rcpp::export]]
 Rcpp::List g2cpp(Rcpp::DataFrame ds)
 {
@@ -222,7 +222,6 @@ Rcpp::List g2cpp(Rcpp::DataFrame ds)
     Rcpp::Named("g2t") = 1-pow((Ti[n-1]/Bi[n-1]), -2./n)
   ));
 }
-*/
 
 
 void add_constant(double *x, const int n, const double constant)
@@ -251,7 +250,7 @@ double ddot(const double *x, const double *y, const int n)
   return res;
 }
 
-void sub(double *x, const double* y, const int n)
+void sub(double *x, const double *y, const int n)
 {
   for (size_t i = 0; i < n; i++)
     x[i] -= y[i];
@@ -266,21 +265,17 @@ void mycopy(double *des, const double *src, const int n)
 void sortxy(double *x, double *y, const int n)
 {
   // sort (xi, yi) by the ascending order of x
-  size_t *order = new size_t(n);
-  /*
-  size_t* order = (size_t*)malloc(sizeof(size_t)*n);
+  size_t *order = new size_t[n]; // see https://github.com/szcf-weiya/G-squared/issues/3
   gsl_sort_index(order, x, 1, n);
-  double *xtmp = new double(n);
-  double *ytmp = new double(n);
-  //mycopy(xtmp, x, n);
-  //mycopy(ytmp, y, n);
-  //for (size_t i = 0; i < n; i++){
-  //  x[i] = xtmp[order[i]];
-  //  y[i] = ytmp[order[i]];
-  //}
-  */
+  double *xtmp = new double[n];
+  double *ytmp = new double[n];
+  mycopy(xtmp, x, n);
+  mycopy(ytmp, y, n);
+  for (size_t i = 0; i < n; i++){
+    x[i] = xtmp[order[i]];
+    y[i] = ytmp[order[i]];
+  }
   delete [] order;
-  free(order);
   delete [] xtmp;
   delete [] ytmp;
 }
@@ -294,7 +289,7 @@ void normalize(double *y, const int n)
     sd += y[i] * y[i];
   }
   mu = mu/n;
-  sd = (sd - n*mu*mu)/(n-1);
+  sd = sqrt((sd - n*mu*mu)/(n-1));
   for (size_t i = 0; i < n; i++)
   {
     y[i] = (y[i] - mu)/sd;
@@ -308,12 +303,12 @@ void g2(double *x, double *y, const int n, double *g2m, double *g2t)
   // sort y by the ascending order of x
   sortxy(x, y, n);
   // normalize
-  //normalize(y, n);
-  /*
+  normalize(y, n);
+  // cout << gsl_stats_variance(y, 1, n) << endl;// an efficient debug point
   // initialize three sequences
-  double *Mi = new double(n);
-  double *Bi = new double(n);
-  double *Ti = new double(n);
+  double *Mi = new double[n];
+  double *Bi = new double[n];
+  double *Ti = new double[n];
   Mi[0] = 0;
   Bi[0] = 1;
   Ti[0] = 1;
@@ -330,28 +325,32 @@ void g2(double *x, double *y, const int n, double *g2m, double *g2t)
     }
     gsl_vector *mi = gsl_vector_calloc(i-2*m+2);
     // construct k
-    int *k = new int(i-2*m+2);
+    int *k = new int[i-2*m+2];
     k[0] = 0;
     for (size_t ii = 1; ii < i-2*m+2; ii++){
       k[ii] = m -1 + ii;
     }
-    */
-/*
+
     for (size_t kk = 0; kk < i-2*m+2; kk++){
       // regression y on x for k:i
-      double *xx = new double(i-k[kk]+1);
-      double *yy = new double(i-k[kk]+1);
+      double *xx = new double[i-k[kk]+1];
+      double *yy = new double[i-k[kk]+1];
       for (size_t ki = k[kk]; ki <= i; ki++){ // pay attention to the idx
         xx[ki-k[kk]] = x[ki];
         yy[ki-k[kk]] = y[ki];
       }
+
       add_constant(xx, i-k[kk]+1, -1.*gsl_stats_mean(xx, 1, i-k[kk]+1));
       double sum_xy = ddot(xx, yy, i-k[kk]+1);
       double sum_xx = ddot(xx, xx, i-k[kk]+1);
+
       scale(xx, i-k[kk]+1, sum_xy/sum_xx);
+
       add_constant(xx, i-k[kk]+1, gsl_stats_mean(yy, 1, i-k[kk]+1));
       // yyhat - yy
-      sub(xx, yy, n);
+
+      sub(xx, yy, i-k[kk]+1);
+
       double sigma2hat = gsl_stats_variance(xx, 1, i-k[kk]+1);
       double lki = -1.0 * (i-k[kk])*log(sigma2hat)/2;
       gsl_vector_set(mi, kk, lambda + Mi[k[kk]] + lki);
@@ -359,11 +358,10 @@ void g2(double *x, double *y, const int n, double *g2m, double *g2t)
       double Lki = myexp(lki);
       bi = bi + Bi[k[kk]];
       ti = ti + Ti[k[kk]]*Lki;
+
       delete [] xx;
       delete [] yy;
     }
-*/
-/*
     Mi[i] = gsl_vector_max(mi);
     Bi[i] = bi;
     Ti[i] = ti;
@@ -371,12 +369,11 @@ void g2(double *x, double *y, const int n, double *g2m, double *g2t)
     delete [] k;
   }
   // final result
-  *g2m = 1-exp(-2.0/n*(Mi[n-1]-lambda));
-  *g2t = 1-pow((Ti[n-1]/Bi[n-1]), -2./n);
+  *g2m = 1 - exp(-2.0/n*(Mi[n-1]-lambda));
+  *g2t = 1 - pow((Ti[n-1]/Bi[n-1]), -2./n);
   delete [] Mi;
   delete [] Bi;
   delete [] Ti;
-  */
 }
 
 double calculate_p(const double* v, const int n, const double cut)
@@ -406,7 +403,7 @@ Rcpp::List test(Rcpp::DataFrame ds)
   );
 }
 
-/*
+
 // [[Rcpp::export]]
 Rcpp::List StatPower(const int n, const int num_noise, const int num_type, const int n1, const int n2)
 {
@@ -420,20 +417,20 @@ Rcpp::List StatPower(const int n, const int num_noise, const int num_type, const
     noise = sqrt(1.0/(0.2/num_noise*(i+1)) - 1);
     for (size_t j = 0; j < num_type; j++)
     {
-      double *val_cor = new double(n1);
-      double *val_g2m = new double(n1);
-      double *val_g2t = new double(n1);
-      double *val_cor2 = new double(n2);
-      double *val_g2m2 = new double(n2);
-      double *val_g2t2 = new double(n2);
+      double *val_cor = new double[n1];
+      double *val_g2m = new double[n1];
+      double *val_g2t = new double[n1];
+      double *val_cor2 = new double[n2];
+      double *val_g2m2 = new double[n2];
+      double *val_g2t2 = new double[n2];
 
       for (size_t k = 0; k < n1; k++)
       {
         //Rcpp::DataFrame ds = genXY(n, noise, j, 1);
         //RcppGSL::vector<double> y = ds["y"];
         //RcppGSL::vector<double> x = ds["x"];
-        double *x = new double(n);
-        double *y = new double(n);
+        double *x = new double[n];
+        double *y = new double[n];
         genXY(n, noise, j, 1, x, y);
         // correlation
         val_cor[k] = pow(gsl_stats_correlation(x, 1, y, 1, n), 2);
@@ -453,8 +450,8 @@ Rcpp::List StatPower(const int n, const int num_noise, const int num_type, const
       // for alternative hypothesis
       for (size_t k = 0; k < n2; k++)
       {
-        double *x = new double(n);
-        double *y = new double(n);
+        double *x = new double[n];
+        double *y = new double[n];
         genXY(n, noise, j, 0, x, y);
         // correlation
         val_cor2[k] = pow(gsl_stats_correlation(x, 1, y, 1, n), 2);
@@ -485,4 +482,3 @@ Rcpp::List StatPower(const int n, const int num_noise, const int num_type, const
     )
   );
 }
-*/
