@@ -21,11 +21,11 @@ make
 
 you would get the shared library `.so`
 
-Then in the R console, run the R code in [g2_with_extern.R](g2_with_extern.R)
+Then in the R console, run the R code in [g2_with_extern.R](R/g2_with_extern.R)
 
 ## Plot
 
-Use the following commands to plot like in the original paper. The following code can be directly downloaded from [plot.R](plot.R)
+Use the following commands to plot like in the original paper. The following code can be directly downloaded from [plot.R](R/plot.R)
 
 **NOTE:** There are three different ways to deal with the noise. One is to add the noise to the observations before normalization, another one is to add the noise after normalization, while the third one is to combine them. As far as I'm concerned, I prefer to the third ways.
 
@@ -71,12 +71,12 @@ for (i in 1:20)
 
 We would get the following results
 
-![](compare_res.png)
+![](res/compare_res.png)
 
 Our original goal is to speed up the program by Rcpp. The following results demonstrate the Rcpp program works!
 
 
-![](compare_time.png)
+![](res/compare_time.png)
 
 ## Reference
 1. Wang, X., Jiang, B., & Liu, J. S. (2017). Generalized R-squared for detecting dependence. Biometrika,​ ​ 104(1),​ ​ 129-139.
