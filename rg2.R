@@ -6,8 +6,8 @@ Rcpp::sourceCpp("g20.cpp")
 N = 100
 num.noise = 6 # 30
 num.type = 2 # 8
-n1 = 200
-n2 = 200
+n1 = 10
+n2 = 10
 system.time(
   {
     res = StatPower(N, num.noise, num.type, n1, n2)
@@ -34,6 +34,9 @@ for (i in 1:20)
   gap[2, i] = res1$g2t - res2$g2t
 }
 gap
+
+
+
 
 ## compare time 
 system.time(

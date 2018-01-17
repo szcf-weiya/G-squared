@@ -32,7 +32,7 @@ int genXY(const int n, const double epsi, const int type, const int resimulate, 
     } else if (type == 3){ // radical
       y[i] = sqrt(x[i]) + noise;
     } else if (type == 4){ // low freq sine
-      y[i] = sin(2*PI*x[i]) + noise;
+      y[i] = sin(4*PI*x[i]) + noise;
     } else if (type == 5){ // triangle
        tmp = 1 - abs(x[i]);
        if (tmp < 0){
@@ -42,7 +42,7 @@ int genXY(const int n, const double epsi, const int type, const int resimulate, 
        }
     } else if (type == 6){
       // high freq sine
-      y[i] = sin(20*PI*x[i]) + noise;
+      y[i] = sin(16*PI*x[i]) + noise;
     } else if (type == 7){
       // step function
       y[i] = floor(x[i]/0.2) + noise;
@@ -50,6 +50,63 @@ int genXY(const int n, const double epsi, const int type, const int resimulate, 
       return 0;
     }
   }
+  if (resimulate == 1){
+    for (size_t i = 0; i < n; i++){
+      x[i] = gsl_rng_uniform(r);
+    }
+  }
+  gsl_rng_free(r);
+  return 1;
+}
+
+void normalize(double *y, const int n);
+
+int genXY2(const int n, const double epsi, const int type, const int resimulate, double *x, double *y, size_t seed)
+{
+  gsl_rng *r;
+  gsl_rng_env_setup();
+  r = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(r, seed);
+  double noise;
+  double tmp;
+  for (size_t i = 0; i < n; i++)
+  {
+    x[i] = gsl_rng_uniform(r);
+    if (type == 0){ //linear
+      y[i] = x[i];
+    } else if (type == 1){ // quadradic
+      y[i] = pow(x[i], 2);
+    } else if (type == 2){ // cubic
+      y[i] = pow(x[i], 3);
+    } else if (type == 3){ // radical
+      y[i] = sqrt(x[i]);
+    } else if (type == 4){ // low freq sine
+      y[i] = sin(4*PI*x[i]);
+    } else if (type == 5){ // triangle
+       tmp = 1 - abs(x[i]);
+       if (tmp < 0){
+         y[i] = 0;
+       } else {
+         y[i] = tmp;
+       }
+    } else if (type == 6){
+      // high freq sine
+      y[i] = sin(16*PI*x[i]);
+    } else if (type == 7){
+      // step function
+      y[i] = floor(x[i]/0.2);
+    } else {
+      return 0;
+    }
+  }
+  // normalize
+  normalize(y, n);
+  for (size_t i = 0; i < n; i++)
+  {
+    noise = gsl_ran_gaussian(r, epsi);
+    y[i] += noise;
+  }
+
   if (resimulate == 1){
     for (size_t i = 0; i < n; i++){
       x[i] = gsl_rng_uniform(r);
@@ -245,7 +302,9 @@ extern "C" SEXP StatPower(SEXP R_n, SEXP R_num_noise, SEXP R_num_type, SEXP R_n1
   Rcpp::NumericMatrix power_g2t(num_noise, num_type);
   for (size_t i = 0; i < num_noise; i++)
   {
+    //noise = 0;
     noise = sqrt(1.0/(0.2/num_noise*(i+1)) - 1);
+    cout << noise << endl;
     for (size_t j = 0; j < num_type; j++)
     {
       double *val_cor = new double[n1];
@@ -259,7 +318,7 @@ extern "C" SEXP StatPower(SEXP R_n, SEXP R_num_noise, SEXP R_num_type, SEXP R_n1
         //RcppGSL::vector<double> x = ds["x"];
         double *x = new double[n];
         double *y = new double[n];
-        genXY(n, noise, j, 1, x, y,  k + 10*(n1+n2)*j + 100*num_noise*i);
+        genXY2(n, noise, j, 1, x, y,  k + 10*(n1+n2)*j + 100*num_noise*i);
         // correlation
         val_cor[k] = pow(gsl_stats_correlation(x, 1, y, 1, n), 2);
         // g2
@@ -288,7 +347,7 @@ extern "C" SEXP StatPower(SEXP R_n, SEXP R_num_noise, SEXP R_num_type, SEXP R_n1
       {
         double *x2 = new double[n];
         double *y2 = new double[n];
-        genXY(n, noise, j, 0, x2, y2, k+n1 + 10*(n1+n2)*j + 100*num_noise*i);
+        genXY2(n, noise, j, 0, x2, y2, k+n1 + 10*(n1+n2)*j + 100*num_noise*i);
         // correlation
         val_cor2[k] = pow(gsl_stats_correlation(x2, 1, y2, 1, n), 2);
         // g2
