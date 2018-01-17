@@ -29,18 +29,27 @@ Use the following commands to plot like in the original paper. The following cod
 
 **NOTE:** There are three different ways to deal with the noise. One is to add the noise to the observations before normalization, another one is to add the noise after normalization, while the third one is to combine them. As far as I'm concerned, I prefer to the third ways.
 
+### Way 1
+
 ![](res/way1/power_way1.png)
+
+### Way 2
 
 ![](res/way2/single_normalize_xlim_0.5/power_single_xlim_05.png)
 
+### Way 3
+
+Set the maximum of `x` as 0.2
+
 ![](res/way3/normalize_xlim_0.2/power_xlim_02.png)
+
+Set the maximum of `x` as 0.5
 
 ![](res/way3/normalize_xlim_0.5/power_xlim_05.png)
 
+## Others
 
-
-
-## Compare the results by R and Rcpp
+### Compare the results by R and Rcpp
 
 The code is as follows:
 ```r
